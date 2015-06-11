@@ -1,6 +1,12 @@
 <?php
 namespace common\models;
 
+//Use relationship Role Table
+use backend\models\Role;
+
+//Use relationship to Status Table
+use backend\models\Status;
+
 use Yii;
 use yii\base\NotSupportedException;
 use yii\behaviors\TimestampBehavior;
@@ -9,6 +15,7 @@ use yii\web\IdentityInterface;
 // add them ext
 use yii\db\Expression;
 use yii\helpers\Security;
+use yii\helpers\ArrayHelper;
 
 /**
  * User model
@@ -149,6 +156,14 @@ class User extends ActiveRecord implements IdentityInterface
     /**
      * @inheritdoc
      */
+    public function getProfile()
+    {
+        return $this->hasOne(Profile::className(), ['user_id' => 'id']);
+    }
+
+    /**
+     * @inheritdoc
+     */
     public function getAuthKey()
     {
         return $this->auth_key;
@@ -205,5 +220,60 @@ class User extends ActiveRecord implements IdentityInterface
     public function removePasswordResetToken()
     {
         $this->password_reset_token = null;
+    }
+
+
+    //////////////////////////////////////
+    /**
+     * * get role relationship
+     * *
+     * */
+    public function getRole()
+    {
+        return $this -> hasOne(Role::className(), ['role_value'=>'role_id']);
+    }
+    /**
+     * * get role name
+     * *
+     * */
+    public function getRoleName()
+    {
+        return $this->role ? $this->role->role_name: '- no role -';
+    }
+    /**
+     * * get list of roles for dropdown
+     * */
+    public static function getRoleList()
+    {
+        $droptions = Role::find()->asArray()->all();
+        return Arrayhelper::map($droptions, 'role_value', 'role_name');
+    }
+
+    /////////////////////////////////////
+    /**
+     * * get status relation
+     * *
+     * */
+    public function getStatus()
+    {
+        return $this->hasOne(Status::className(), ['status_value' => 'status_id']);
+    }
+
+    /**
+     * * get status name
+     * *
+     * */
+    public function getStatusName()
+    {
+        return $this->status ? $this->status->status_name : '- no status -';
+    }
+
+    /**
+     * * get list of statuses for dropdown
+     * */
+    public static function getStatusList()
+    {
+        $droptions = Status::find()->asArray()->all();
+        return Arrayhelper::map($droptions, 'status_value', 'status_name');
     }
 }
