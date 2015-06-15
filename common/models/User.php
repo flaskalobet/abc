@@ -1,24 +1,11 @@
 <?php
 namespace common\models;
 
-//Use relationship Role Table
-use backend\models\Role;
-
-//Use relationship to Status Table
-use backend\models\Status;
-
-//Use relationship to User_Type
-use backend\models\UserType;
-
 use Yii;
 use yii\base\NotSupportedException;
 use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveRecord;
 use yii\web\IdentityInterface;
-// add them ext
-use yii\db\Expression;
-use yii\helpers\Security;
-use yii\helpers\ArrayHelper;
 
 /**
  * User model
@@ -29,9 +16,7 @@ use yii\helpers\ArrayHelper;
  * @property string $password_reset_token
  * @property string $email
  * @property string $auth_key
- * @property integer $status_id
- * @property integer $role_id
- * @property integer $user_type_id
+ * @property integer $status
  * @property integer $created_at
  * @property integer $updated_at
  * @property string $password write-only password
@@ -55,14 +40,7 @@ class User extends ActiveRecord implements IdentityInterface
     public function behaviors()
     {
         return [
-           'timestamp' => [
-                'class' => 'yii\behaviors\TimestampBehavior',
-                'attributes' => [
-                    ActiveRecord::EVENT_BEFORE_INSERT => ['created_at','updated_at'],
-                    ActiveRecord::EVENT_BEFORE_UPDATE => ['updated_at'],
-                    ],
-                'value' => new Expression('NOW()'),
-            ],
+            TimestampBehavior::className(),
         ];
     }
 
@@ -72,17 +50,8 @@ class User extends ActiveRecord implements IdentityInterface
     public function rules()
     {
         return [
-            ['status_id', 'default', 'value' => self::STATUS_ACTIVE],
-            ['role_id', 'default', 'value' => 10],
-            ['user_type_id', 'default', 'value' => 10],
-            ['username', 'filter', 'filter' => 'trim'],
-            ['username', 'required'],
-            ['username', 'unique'],
-            ['username', 'string', 'min' => 2, 'max' => 255],
-            ['email', 'filter', 'filter' => 'trim'],
-            ['email', 'required'],
-            ['email', 'email'],
-            ['email', 'unique'],
+            ['status', 'default', 'value' => self::STATUS_ACTIVE],
+            ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_DELETED]],
         ];
     }
 
@@ -91,7 +60,7 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public static function findIdentity($id)
     {
-        return static::findOne(['id' => $id, 'status_id' => self::STATUS_ACTIVE]);
+        return static::findOne(['id' => $id, 'status' => self::STATUS_ACTIVE]);
     }
 
     /**
@@ -110,7 +79,7 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public static function findByUsername($username)
     {
-        return static::findOne(['username' => $username, 'status_id' => self::STATUS_ACTIVE]);
+        return static::findOne(['username' => $username, 'status' => self::STATUS_ACTIVE]);
     }
 
     /**
@@ -127,7 +96,7 @@ class User extends ActiveRecord implements IdentityInterface
 
         return static::findOne([
             'password_reset_token' => $token,
-            'status_id' => self::STATUS_ACTIVE,
+            'status' => self::STATUS_ACTIVE,
         ]);
     }
 
@@ -154,14 +123,6 @@ class User extends ActiveRecord implements IdentityInterface
     public function getId()
     {
         return $this->getPrimaryKey();
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function getProfile()
-    {
-        return $this->hasOne(Profile::className(), ['user_id' => 'id']);
     }
 
     /**
@@ -223,95 +184,5 @@ class User extends ActiveRecord implements IdentityInterface
     public function removePasswordResetToken()
     {
         $this->password_reset_token = null;
-    }
-
-
-    //////////////////////////////////////
-    /**
-     * * get role relationship
-     * *
-     * */
-    public function getRole()
-    {
-        return $this -> hasOne(Role::className(), ['role_value'=>'role_id']);
-    }
-    /**
-     * * get role name
-     * *
-     * */
-    public function getRoleName()
-    {
-        return $this->role ? $this->role->role_name: '- no role -';
-    }
-    /**
-     * * get list of roles for dropdown
-     * */
-    public static function getRoleList()
-    {
-        $droptions = Role::find()->asArray()->all();
-        return Arrayhelper::map($droptions, 'role_value', 'role_name');
-    }
-
-    /////////////////////////////////////
-    /**
-     * * get status relation
-     * *
-     * */
-    public function getStatus()
-    {
-        return $this->hasOne(Status::className(), ['status_value' => 'status_id']);
-    }
-
-    /**
-     * * get status name
-     * *
-     * */
-    public function getStatusName()
-    {
-        return $this->status ? $this->status->status_name : '- no status -';
-    }
-
-    /**
-     * * get list of statuses for dropdown
-     * */
-    public static function getStatusList()
-    {
-        $droptions = Status::find()->asArray()->all();
-        return Arrayhelper::map($droptions, 'status_value', 'status_name');
-    }
-
-    ////////////////////////////////
-    /**
-     ** getUserType
-     ** line break to avoid word wrap in PDF
-     ** code as single line in your IDE
-     **/
-    public function getUserType()
-    {
-        return $this->hasOne(UserType::className(), ['user_type_value' => 'user_type_id']);
-    }
-    /**
-     ** get user type name
-     **
-     **/
-    public function getUserTypeName()
-    {
-        return $this->userType?$this->userType->user_type_name: '- no user type -';
-    }
-    /**
-     * * get list of user types for dropdown
-     * */
-    public static function getUserTypeList()
-    {
-        $droptions = UserType::find()->asArray()->all();
-        return Arrayhelper::map($droptions, 'user_type_value', 'user_type_name');
-    }
-    /**
-     ** get user type id
-     **
-     * */
-    public function getUserTypeId()
-    {
-        return $this->userType ? $this->userType->id: 'none';
     }
 }
